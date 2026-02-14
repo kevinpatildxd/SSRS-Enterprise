@@ -269,7 +269,7 @@ Radius: 12px
 ### Navigation Bar
 ```
 ┌──────────────────────────────────────┐
-│  Alakh Web      Home    Admin       │ ← All white text
+│  SSRS           Home    Admin       │ ← All white text
 └──────────────────────────────────────┘
 Background: Soft Slate Blue (#8B9DC3) ✨
 Height: 56px mobile, 64px desktop

@@ -53,14 +53,14 @@ export async function POST(request: NextRequest) {
     validateProductInput({
       name: body.name,
       price: parseFloat(body.price),
-      min_order_qty: parseInt(body.min_order_qty),
+      min_order_qty: body.min_order_qty,
     });
 
     // Create product
     const product = createProduct({
       name: body.name.trim(),
       price: parseFloat(body.price),
-      min_order_qty: parseInt(body.min_order_qty),
+      min_order_qty: body.min_order_qty.trim(),
       image_path: body.image_path || null,
     });
 

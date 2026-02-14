@@ -12,11 +12,12 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import Footer from '@/components/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Alakh Web - Product Catalog',
+  title: 'SSRS - Product Catalog',
   description: 'Browse our product catalog with competitive prices and minimum order quantities',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
   themeColor: '#3B82F6',
@@ -36,7 +37,7 @@ export default function RootLayout({
             <div className="flex justify-between items-center h-14 sm:h-16">
               {/* Logo/Brand - Responsive sizing */}
               <a href="/" className="text-lg sm:text-xl md:text-2xl font-bold hover:opacity-90 transition-opacity">
-                Alakh Web
+                SSRS
               </a>
 
               {/* Navigation Links - Touch-friendly spacing */}
@@ -64,11 +65,7 @@ export default function RootLayout({
         </main>
 
         {/* Footer - Mobile-optimized */}
-        <footer className="bg-gray-800 text-white py-6 sm:py-8 mt-12">
-          <div className="container mx-auto px-4 text-center">
-            <p className="text-sm sm:text-base">&copy; 2026 Alakh Web. All rights reserved.</p>
-          </div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );

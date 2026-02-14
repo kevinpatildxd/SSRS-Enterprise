@@ -99,7 +99,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
       {/* Price - Number keyboard on mobile */}
       <div>
         <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-          Price (₹) *
+          Price per kg (₹) *
         </label>
         <input
           type="number"
@@ -115,21 +115,19 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
         />
       </div>
 
-      {/* Minimum Order Quantity - Numeric keyboard on mobile */}
+      {/* Minimum Order Quantity - Text input for flexibility */}
       <div>
         <label htmlFor="min_order_qty" className="block text-sm font-medium text-gray-700 mb-2">
           Minimum Order Quantity *
         </label>
         <input
-          type="number"
+          type="text"
           id="min_order_qty"
           required
-          min="1"
-          inputMode="numeric"
           value={formData.min_order_qty}
           onChange={(e) => setFormData({ ...formData, min_order_qty: e.target.value })}
           className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-          placeholder="1"
+          placeholder="e.g., 10, 1 dozen, Minimum 5 units"
         />
       </div>
 

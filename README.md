@@ -1,4 +1,4 @@
-# Alakh Web - Product Management System
+# SSRS - Product Management System
 
 A modern, mobile-first product management website built with Next.js, TypeScript, and SQLite.
 

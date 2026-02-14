@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS products (
   -- Product price (required, stored as REAL for decimal support)
   price REAL NOT NULL CHECK(price >= 0),
 
-  -- Minimum order quantity (required, must be positive integer)
-  min_order_qty INTEGER NOT NULL CHECK(min_order_qty > 0),
+  -- Minimum order quantity (stored as TEXT to allow flexible input)
+  min_order_qty TEXT NOT NULL,
 
   -- Path to product image (relative to /public)
   -- Example: '/images/products/prod_001.jpg'

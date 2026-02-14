@@ -20,11 +20,24 @@ export default function AdminLayout({
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if already authenticated (sessionStorage)
+  // Check if already authenticated with expiration (30 minutes)
   useEffect(() => {
     const auth = sessionStorage.getItem('admin_auth');
-    if (auth === 'true') {
-      setIsAuthenticated(true);
+    const authTime = sessionStorage.getItem('admin_auth_time');
+    
+    if (auth === 'true' && authTime) {
+      const loginTime = parseInt(authTime);
+      const now = Date.now();
+      const thirtyMinutes = 30 * 60 * 1000;
+      
+      // Check if session expired
+      if (now - loginTime < thirtyMinutes) {
+        setIsAuthenticated(true);
+      } else {
+        // Session expired, clear storage
+        sessionStorage.removeItem('admin_auth');
+        sessionStorage.removeItem('admin_auth_time');
+      }
     }
     setIsLoading(false);
   }, []);
@@ -45,6 +58,7 @@ export default function AdminLayout({
       if (data.success) {
         setIsAuthenticated(true);
         sessionStorage.setItem('admin_auth', 'true');
+        sessionStorage.setItem('admin_auth_time', Date.now().toString());
         setError('');
       } else {
         setError('Invalid password. Please try again.');
@@ -59,6 +73,7 @@ export default function AdminLayout({
   const handleLogout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('admin_auth');
+    sessionStorage.removeItem('admin_auth_time');
     setPassword('');
   };
 
@@ -94,7 +109,7 @@ export default function AdminLayout({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="Enter admin password"
+                placeholder="Enter password"
                 autoFocus
               />
             </div>
@@ -112,12 +127,6 @@ export default function AdminLayout({
               Login
             </button>
           </form>
-
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-xs text-blue-800">
-              Enter the password from your .env.local file
-            </p>
-          </div>
         </div>
       </div>
     );

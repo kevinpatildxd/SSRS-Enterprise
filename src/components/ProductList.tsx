@@ -9,17 +9,16 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import type { Product } from '@/types/product';
 
 interface ProductListProps {
-  initialProducts: Product[];
+  products: Product[];
   onDelete?: () => void;
 }
 
-export default function ProductList({ initialProducts, onDelete }: ProductListProps) {
-  const [products, setProducts] = useState(initialProducts);
+export default function ProductList({ products, onDelete }: ProductListProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
@@ -40,10 +39,7 @@ export default function ProductList({ initialProducts, onDelete }: ProductListPr
         throw new Error(data.error || 'Failed to delete product');
       }
 
-      // Remove from local state
-      setProducts(products.filter((p) => p.id !== id));
-
-      // Call callback
+      // Call callback to refresh parent
       onDelete?.();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete product');
@@ -75,7 +71,7 @@ export default function ProductList({ initialProducts, onDelete }: ProductListPr
                   Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price
+                  Price per kg
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Min. Order
@@ -99,7 +95,7 @@ export default function ProductList({ initialProducts, onDelete }: ProductListPr
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{product.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">₹{product.price.toLocaleString('en-IN')}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">₹{product.price.toLocaleString('en-IN')} <span className="text-gray-500">/kg</span></td>
                   <td className="px-6 py-4 text-sm text-gray-900">{product.min_order_qty}</td>
                   <td className="px-6 py-4">
                     <button
@@ -136,10 +132,10 @@ export default function ProductList({ initialProducts, onDelete }: ProductListPr
               <div className="flex-grow min-w-0">
                 <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
                 <p className="text-lg font-bold text-primary mt-1">
-                  ₹{product.price.toLocaleString('en-IN')}
+                  ₹{product.price.toLocaleString('en-IN')} <span className="text-sm text-gray-500">/kg</span>
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  Min. Order: {product.min_order_qty} units
+                  Min. Order: {product.min_order_qty}
                 </p>
               </div>
             </div>

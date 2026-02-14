@@ -55,21 +55,13 @@ export function validateProductPrice(price: number): void {
  * Validate minimum order quantity
  * @throws {ValidationError} If quantity is invalid
  */
-export function validateMinOrderQty(qty: number): void {
-  if (typeof qty !== 'number' || isNaN(qty) || !Number.isInteger(qty)) {
-    throw new ValidationError('Minimum order quantity must be a valid integer');
+export function validateMinOrderQty(qty: string): void {
+  if (!qty || qty.trim().length === 0) {
+    throw new ValidationError('Minimum order quantity is required');
   }
 
-  if (qty < PRODUCT_CONFIG.MIN_ORDER_QTY) {
-    throw new ValidationError(
-      `Minimum order quantity must be at least ${PRODUCT_CONFIG.MIN_ORDER_QTY}`
-    );
-  }
-
-  if (qty > PRODUCT_CONFIG.MAX_ORDER_QTY) {
-    throw new ValidationError(
-      `Minimum order quantity cannot exceed ${PRODUCT_CONFIG.MAX_ORDER_QTY}`
-    );
+  if (qty.length > 100) {
+    throw new ValidationError('Minimum order quantity must be less than 100 characters');
   }
 }
 
@@ -104,7 +96,7 @@ export function validateImageFile(file: File): void {
 export function validateProductInput(input: {
   name: string;
   price: number;
-  min_order_qty: number;
+  min_order_qty: string;
 }): void {
   validateProductName(input.name);
   validateProductPrice(input.price);

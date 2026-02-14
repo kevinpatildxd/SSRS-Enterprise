@@ -39,16 +39,17 @@ export default function ProductCard({ product }: ProductCardProps) {
           {product.name}
         </h3>
 
-        {/* Price - Large and prominent on all devices */}
+        {/* Price per kg - Large and prominent on all devices */}
         <div className="flex items-baseline gap-2 mb-2 mt-auto">
           <span className="text-xl sm:text-2xl font-bold text-primary">
             ₹{product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
+          <span className="text-sm text-gray-500">per kg</span>
         </div>
 
         {/* Minimum Order Quantity - Clear and readable */}
         <div className="text-xs sm:text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded">
-          Min. Order: <span className="font-medium text-gray-800">{product.min_order_qty} units</span>
+          Min. Order: <span className="font-medium text-gray-800">{product.min_order_qty}</span>
         </div>
       </div>
     </div>

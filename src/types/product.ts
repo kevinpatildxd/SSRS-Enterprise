@@ -19,8 +19,8 @@ export interface Product {
   /** Product price (in your currency) */
   price: number;
 
-  /** Minimum order quantity */
-  min_order_qty: number;
+  /** Minimum order quantity (flexible text input) */
+  min_order_qty: string;
 
   /** Path to product image (relative to /public) */
   image_path: string | null;
@@ -39,7 +39,7 @@ export interface Product {
 export interface ProductInput {
   name: string;
   price: number;
-  min_order_qty: number;
+  min_order_qty: string;
   image_path?: string | null;
 }
 
@@ -50,7 +50,7 @@ export interface ProductInput {
 export interface ProductUpdate {
   name?: string;
   price?: number;
-  min_order_qty?: number;
+  min_order_qty?: string;
   image_path?: string | null;
 }
 
