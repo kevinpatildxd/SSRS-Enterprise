@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import type { Product } from '@/types/product';
 
 interface ProductListProps {
@@ -43,11 +42,8 @@ export default function ProductList({ products, onDelete }: ProductListProps) {
     }
   };
 
-  const getImageSrc = (product: Product): string => {
-    if (imageErrors[product.id] || !product.image_path) {
-      return '/images/placeholder.png';
-    }
-    return product.image_path;
+  const hasValidImage = (product: Product): boolean => {
+    return !!(product.image_path && !imageErrors[product.id]);
   };
 
   if (products.length === 0) {
@@ -87,14 +83,21 @@ export default function ProductList({ products, onDelete }: ProductListProps) {
               {products.map((product) => (
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
-                    <div className="relative w-16 h-16">
-                      <Image
-                        src={getImageSrc(product)}
-                        alt={product.name}
-                        fill
-                        className="object-cover rounded"
-                        onError={() => handleImageError(product.id)}
-                      />
+                    <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden">
+                      {hasValidImage(product) ? (
+                        <img
+                          src={product.image_path!}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          onError={() => handleImageError(product.id)}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{product.name}</td>
@@ -123,14 +126,21 @@ export default function ProductList({ products, onDelete }: ProductListProps) {
         {products.map((product) => (
           <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="flex gap-4 p-4">
-              <div className="relative w-20 h-20 flex-shrink-0">
-                <Image
-                  src={getImageSrc(product)}
-                  alt={product.name}
-                  fill
-                  className="object-cover rounded"
-                  onError={() => handleImageError(product.id)}
-                />
+              <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                {hasValidImage(product) ? (
+                  <img
+                    src={product.image_path!}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    onError={() => handleImageError(product.id)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
               </div>
 
               <div className="flex-grow min-w-0">

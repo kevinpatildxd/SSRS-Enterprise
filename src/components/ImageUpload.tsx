@@ -12,7 +12,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import Image from 'next/image';
 
 interface ImageUploadProps {
   onUploadSuccess: (imagePath: string) => void;
@@ -205,12 +204,10 @@ export default function ImageUpload({ onUploadSuccess, onUploadError }: ImageUpl
         <div className="mt-4">
           <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
           <div className="relative w-full h-48 sm:h-64 bg-gray-100 rounded-md overflow-hidden border border-gray-200">
-            <Image
+            <img
               src={state.preview}
               alt="Product preview"
-              fill
-              className="object-contain"
-              sizes="(max-width: 768px) 100vw, 50vw"
+              className="w-full h-full object-contain"
             />
           </div>
         </div>
