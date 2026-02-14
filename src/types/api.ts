@@ -37,6 +37,7 @@ export interface ImageUploadResponse {
     /** File size in bytes */
     size: number;
   };
+  message?: string;
 }
 
 /**

@@ -1,21 +1,29 @@
-/**
- * Home Page
- *
- * Public-facing page that displays all products in a responsive grid.
- * This page is server-rendered for SEO benefits.
- * Mobile-first responsive design with optimized layouts for all devices.
- */
-
-import { getAllProducts } from '@/lib/db';
+import { getAllProducts, testConnection } from '@/lib/db';
 import ProductCard from '@/components/ProductCard';
+import type { Product } from '@/types/product';
 
 export default async function HomePage() {
-  // Fetch products server-side
-  const products = await getAllProducts();
+  let products: Product[] = [];
+  let error: string | null = null;
+  let dbConnected = false;
+
+  try {
+    // Test database connection first
+    dbConnected = await testConnection();
+    
+    if (dbConnected) {
+      products = await getAllProducts();
+    } else {
+      error = 'Database connection failed';
+    }
+  } catch (err) {
+    console.error('Error loading products:', err);
+    error = err instanceof Error ? err.message : 'Failed to load products';
+  }
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
-      {/* Page Header - Responsive typography */}
+      {/* Page Header */}
       <div className="mb-6 sm:mb-8 lg:mb-12">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2">
           Our Products
@@ -25,8 +33,26 @@ export default async function HomePage() {
         </p>
       </div>
 
-      {/* Products Grid - Fully responsive */}
-      {products.length === 0 ? (
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded-lg">
+          <div className="flex items-start gap-3">
+            <svg className="w-6 h-6 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h3 className="font-semibold mb-1">Unable to load products</h3>
+              <p className="text-sm">{error}</p>
+              <p className="text-sm mt-2 text-red-600">
+                Please refresh the page or contact support if the problem persists.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Products Grid */}
+      {products.length === 0 && !error ? (
         <div className="text-center py-12 sm:py-16 lg:py-20">
           <div className="bg-white rounded-lg shadow-md p-8 sm:p-12 max-w-md mx-auto">
             <svg
@@ -57,5 +83,4 @@ export default async function HomePage() {
   );
 }
 
-// Revalidate every 60 seconds (ISR - Incremental Static Regeneration)
-export const revalidate = 60;
+export const revalidate = 0;

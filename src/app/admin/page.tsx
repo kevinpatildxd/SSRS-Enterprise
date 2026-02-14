@@ -137,7 +137,7 @@ export default function AdminPage() {
                   <div>
                     <p className="text-sm sm:text-base text-gray-600 mb-1">Average Price</p>
                     <p className="text-2xl sm:text-3xl font-bold text-gray-800">
-                      ₹{(products.reduce((sum, p) => sum + p.price, 0) / products.length).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      ₹{(products.reduce((sum, p) => sum + Number(p.price), 0) / products.length).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                     </p>
                   </div>
 

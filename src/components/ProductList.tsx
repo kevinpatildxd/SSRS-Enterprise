@@ -1,15 +1,6 @@
-/**
- * ProductList Component
- *
- * Displays all products in a responsive table/card layout.
- * - Table view on desktop
- * - Card view on mobile for better usability
- * Used in the admin panel.
- */
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import type { Product } from '@/types/product';
 
@@ -20,6 +11,11 @@ interface ProductListProps {
 
 export default function ProductList({ products, onDelete }: ProductListProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const handleImageError = (productId: string) => {
+    setImageErrors(prev => ({ ...prev, [productId]: true }));
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) {
@@ -39,13 +35,19 @@ export default function ProductList({ products, onDelete }: ProductListProps) {
         throw new Error(data.error || 'Failed to delete product');
       }
 
-      // Call callback to refresh parent
       onDelete?.();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete product');
     } finally {
       setDeleting(null);
     }
+  };
+
+  const getImageSrc = (product: Product): string => {
+    if (imageErrors[product.id] || !product.image_path) {
+      return '/images/placeholder.png';
+    }
+    return product.image_path;
   };
 
   if (products.length === 0) {
@@ -58,7 +60,7 @@ export default function ProductList({ products, onDelete }: ProductListProps) {
 
   return (
     <>
-      {/* Desktop Table View - Hidden on mobile */}
+      {/* Desktop Table View */}
       <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -87,15 +89,18 @@ export default function ProductList({ products, onDelete }: ProductListProps) {
                   <td className="px-6 py-4">
                     <div className="relative w-16 h-16">
                       <Image
-                        src={product.image_path || '/images/placeholder.png'}
+                        src={getImageSrc(product)}
                         alt={product.name}
                         fill
                         className="object-cover rounded"
+                        onError={() => handleImageError(product.id)}
                       />
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{product.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">₹{product.price.toLocaleString('en-IN')} <span className="text-gray-500">/kg</span></td>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    ₹{Number(product.price).toLocaleString('en-IN')} <span className="text-gray-500">/kg</span>
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{product.min_order_qty}</td>
                   <td className="px-6 py-4">
                     <button
@@ -113,26 +118,25 @@ export default function ProductList({ products, onDelete }: ProductListProps) {
         </div>
       </div>
 
-      {/* Mobile Card View - Shown only on mobile */}
+      {/* Mobile Card View */}
       <div className="md:hidden space-y-4">
         {products.map((product) => (
           <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="flex gap-4 p-4">
-              {/* Product Image */}
               <div className="relative w-20 h-20 flex-shrink-0">
                 <Image
-                  src={product.image_path || '/images/placeholder.png'}
+                  src={getImageSrc(product)}
                   alt={product.name}
                   fill
                   className="object-cover rounded"
+                  onError={() => handleImageError(product.id)}
                 />
               </div>
 
-              {/* Product Info */}
               <div className="flex-grow min-w-0">
                 <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
                 <p className="text-lg font-bold text-primary mt-1">
-                  ₹{product.price.toLocaleString('en-IN')} <span className="text-sm text-gray-500">/kg</span>
+                  ₹{Number(product.price).toLocaleString('en-IN')} <span className="text-sm text-gray-500">/kg</span>
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
                   Min. Order: {product.min_order_qty}
@@ -140,7 +144,6 @@ export default function ProductList({ products, onDelete }: ProductListProps) {
               </div>
             </div>
 
-            {/* Action Button */}
             <div className="border-t border-gray-100 px-4 py-3">
               <button
                 onClick={() => handleDelete(product.id)}

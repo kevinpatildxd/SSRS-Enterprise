@@ -9,7 +9,7 @@
  * - Mobile-optimized navigation
  */
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Footer from '@/components/Footer';
@@ -19,7 +19,12 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'SSRS - Product Catalog',
   description: 'Browse our product catalog with competitive prices and minimum order quantities',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=5',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
   themeColor: '#3B82F6',
 };
 
