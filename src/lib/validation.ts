@@ -90,7 +90,7 @@ export function validateImageFile(file: File): void {
   }
 
   // Check file type
-  if (!IMAGE_CONFIG.ALLOWED_TYPES.includes(file.type)) {
+  if (!(IMAGE_CONFIG.ALLOWED_TYPES as readonly string[]).includes(file.type)) {
     throw new ValidationError(
       `File type must be one of: ${IMAGE_CONFIG.ALLOWED_TYPES.join(', ')}`
     );
