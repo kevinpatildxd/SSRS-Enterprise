@@ -6,28 +6,32 @@
  * - CRUD operations for products
  * - Query builders
  *
- * Uses better-sqlite3 for synchronous SQLite operations.
+ * Uses Turso (@libsql/client) for serverless SQLite operations.
  */
 
-import Database from 'better-sqlite3';
+import { createClient, Client } from '@libsql/client';
 import { Product, ProductInput } from '@/types/product';
 import { DB_CONFIG } from './constants';
 
 // Singleton database instance
-let db: Database.Database | null = null;
+let db: Client | null = null;
 
 /**
  * Get database connection (singleton pattern)
  * Creates connection on first call, reuses thereafter
  */
-export function getDb(): Database.Database {
+export function getDb(): Client {
   if (!db) {
-    db = new Database(DB_CONFIG.DB_PATH, {
-      verbose: process.env.NODE_ENV === 'development' ? console.log : undefined,
-    });
+    if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
+      throw new Error(
+        'Missing Turso environment variables. Please set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in .env.local'
+      );
+    }
 
-    // Enable foreign keys
-    db.pragma('foreign_keys = ON');
+    db = createClient({
+      url: process.env.TURSO_DATABASE_URL,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
   }
 
   return db;
@@ -37,24 +41,24 @@ export function getDb(): Database.Database {
  * Generate unique product ID
  * Format: prod_001, prod_002, etc.
  */
-export function generateProductId(): string {
+export async function generateProductId(): Promise<string> {
   const db = getDb();
 
   // Get the highest existing ID number
-  const result = db
-    .prepare(`
-      SELECT id FROM products
-      ORDER BY id DESC
-      LIMIT 1
-    `)
-    .get() as { id: string } | undefined;
+  const result = await db.execute(`
+    SELECT id FROM products
+    ORDER BY id DESC
+    LIMIT 1
+  `);
 
-  if (!result) {
+  if (!result.rows || result.rows.length === 0) {
     return `${DB_CONFIG.PRODUCT_ID_PREFIX}001`;
   }
 
+  const lastId = result.rows[0].id as string;
+
   // Extract number from last ID and increment
-  const lastNumber = parseInt(result.id.replace(DB_CONFIG.PRODUCT_ID_PREFIX, ''));
+  const lastNumber = parseInt(lastId.replace(DB_CONFIG.PRODUCT_ID_PREFIX, ''));
   const nextNumber = lastNumber + 1;
 
   // Pad with zeros (e.g., 001, 002, 010, 100)
@@ -65,17 +69,15 @@ export function generateProductId(): string {
  * Get all products
  * @returns Array of all products, sorted by newest first
  */
-export function getAllProducts(): Product[] {
+export async function getAllProducts(): Promise<Product[]> {
   const db = getDb();
 
-  const products = db
-    .prepare(`
-      SELECT * FROM products
-      ORDER BY created_at DESC
-    `)
-    .all() as Product[];
+  const result = await db.execute(`
+    SELECT * FROM products
+    ORDER BY created_at DESC
+  `);
 
-  return products;
+  return result.rows as unknown as Product[];
 }
 
 /**
@@ -83,14 +85,19 @@ export function getAllProducts(): Product[] {
  * @param id - Product ID
  * @returns Product or null if not found
  */
-export function getProductById(id: string): Product | null {
+export async function getProductById(id: string): Promise<Product | null> {
   const db = getDb();
 
-  const product = db
-    .prepare('SELECT * FROM products WHERE id = ?')
-    .get(id) as Product | undefined;
+  const result = await db.execute({
+    sql: 'SELECT * FROM products WHERE id = ?',
+    args: [id],
+  });
 
-  return product || null;
+  if (!result.rows || result.rows.length === 0) {
+    return null;
+  }
+
+  return result.rows[0] as unknown as Product;
 }
 
 /**
@@ -98,26 +105,31 @@ export function getProductById(id: string): Product | null {
  * @param input - Product data
  * @returns Created product with generated ID
  */
-export function createProduct(input: ProductInput): Product {
+export async function createProduct(input: ProductInput): Promise<Product> {
   const db = getDb();
 
-  const id = generateProductId();
+  const id = await generateProductId();
 
-  const stmt = db.prepare(`
-    INSERT INTO products (id, name, price, min_order_qty, image_path)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    id,
-    input.name,
-    input.price,
-    input.min_order_qty,
-    input.image_path || null
-  );
+  await db.execute({
+    sql: `
+      INSERT INTO products (id, name, price, min_order_qty, image_path)
+      VALUES (?, ?, ?, ?, ?)
+    `,
+    args: [
+      id,
+      input.name,
+      input.price,
+      input.min_order_qty,
+      input.image_path || null,
+    ],
+  });
 
   // Return the created product
-  return getProductById(id)!;
+  const product = await getProductById(id);
+  if (!product) {
+    throw new Error('Failed to create product');
+  }
+  return product;
 }
 
 /**
@@ -126,14 +138,14 @@ export function createProduct(input: ProductInput): Product {
  * @param input - Updated product data
  * @returns Updated product or null if not found
  */
-export function updateProduct(
+export async function updateProduct(
   id: string,
   input: Partial<ProductInput>
-): Product | null {
+): Promise<Product | null> {
   const db = getDb();
 
   // Check if product exists
-  const existing = getProductById(id);
+  const existing = await getProductById(id);
   if (!existing) return null;
 
   // Build dynamic update query
@@ -166,13 +178,14 @@ export function updateProduct(
 
   values.push(id); // Add ID for WHERE clause
 
-  const stmt = db.prepare(`
-    UPDATE products
-    SET ${fields.join(', ')}
-    WHERE id = ?
-  `);
-
-  stmt.run(...values);
+  await db.execute({
+    sql: `
+      UPDATE products
+      SET ${fields.join(', ')}
+      WHERE id = ?
+    `,
+    args: values,
+  });
 
   return getProductById(id);
 }
@@ -182,13 +195,15 @@ export function updateProduct(
  * @param id - Product ID
  * @returns true if deleted, false if not found
  */
-export function deleteProduct(id: string): boolean {
+export async function deleteProduct(id: string): Promise<boolean> {
   const db = getDb();
 
-  const stmt = db.prepare('DELETE FROM products WHERE id = ?');
-  const result = stmt.run(id);
+  const result = await db.execute({
+    sql: 'DELETE FROM products WHERE id = ?',
+    args: [id],
+  });
 
-  return result.changes > 0;
+  return result.rowsAffected > 0;
 }
 
 /**
@@ -196,18 +211,19 @@ export function deleteProduct(id: string): boolean {
  * @param query - Search query
  * @returns Array of matching products
  */
-export function searchProducts(query: string): Product[] {
+export async function searchProducts(query: string): Promise<Product[]> {
   const db = getDb();
 
-  const products = db
-    .prepare(`
+  const result = await db.execute({
+    sql: `
       SELECT * FROM products
       WHERE name LIKE ?
       ORDER BY created_at DESC
-    `)
-    .all(`%${query}%`) as Product[];
+    `,
+    args: [`%${query}%`],
+  });
 
-  return products;
+  return result.rows as unknown as Product[];
 }
 
 // Future expansion: Add pagination, filtering, sorting, etc.

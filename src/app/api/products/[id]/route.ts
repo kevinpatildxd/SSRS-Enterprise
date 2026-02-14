@@ -23,7 +23,7 @@ export async function DELETE(
     const { id } = params;
 
     // Check if product exists
-    const product = getProductById(id);
+    const product = await getProductById(id);
     if (!product) {
       return NextResponse.json<ApiError>(
         {
@@ -40,7 +40,7 @@ export async function DELETE(
     }
 
     // Delete product from database
-    const deleted = deleteProduct(id);
+    const deleted = await deleteProduct(id);
 
     if (!deleted) {
       return NextResponse.json<ApiError>(

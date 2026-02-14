@@ -18,7 +18,7 @@ import type { Product } from '@/types/product';
  */
 export async function GET(request: NextRequest) {
   try {
-    const products = getAllProducts();
+    const products = await getAllProducts();
 
     return NextResponse.json<ApiResponse<Product[]>>({
       success: true,
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create product
-    const product = createProduct({
+    const product = await createProduct({
       name: body.name.trim(),
       price: parseFloat(body.price),
       min_order_qty: body.min_order_qty.trim(),

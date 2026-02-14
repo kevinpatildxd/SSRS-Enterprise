@@ -11,7 +11,7 @@ import ProductCard from '@/components/ProductCard';
 
 export default async function HomePage() {
   // Fetch products server-side
-  const products = getAllProducts();
+  const products = await getAllProducts();
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
