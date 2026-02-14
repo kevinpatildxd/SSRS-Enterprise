@@ -2,6 +2,8 @@
 const nextConfig = {
   // Image optimization settings
   images: {
+    // Disable image optimization for local files during development
+    unoptimized: process.env.NODE_ENV === 'development',
     // Allow images from these domains (add future CDNs here)
     remotePatterns: [],
     // Supported image formats

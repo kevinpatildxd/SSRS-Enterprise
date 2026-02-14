@@ -29,11 +29,14 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [uploadKey, setUploadKey] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess(false);
 
     try {
       const response = await fetch('/api/products', {
@@ -56,8 +59,17 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
         image_path: '',
       });
 
+      // Reset image upload component
+      setUploadKey(prev => prev + 1);
+
+      // Show success message
+      setSuccess(true);
+
       // Call success callback
       onSuccess?.();
+
+      // Hide success message after 3 seconds
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create product');
     } finally {
@@ -77,6 +89,16 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
       {error && (
         <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
           {error}
+        </div>
+      )}
+
+      {/* Success Message */}
+      {success && (
+        <div className="bg-green-50 text-green-600 p-3 rounded-md text-sm flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          Product added successfully!
         </div>
       )}
 
@@ -132,7 +154,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
       </div>
 
       {/* Image Upload */}
-      <ImageUpload onUploadSuccess={handleImageUpload} />
+      <ImageUpload key={uploadKey} onUploadSuccess={handleImageUpload} />
 
       {/* Submit Button - Large touch target for mobile */}
       <button
