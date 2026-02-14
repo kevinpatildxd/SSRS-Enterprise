@@ -2,29 +2,24 @@
  * Image Processing Module
  *
  * Handles image upload, compression, and optimization using Sharp.
- * Automatically resizes and optimizes images for web delivery.
+ * Uploads to Vercel Blob Storage for serverless compatibility.
  */
 
 import sharp from 'sharp';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { put, del } from '@vercel/blob';
 import { IMAGE_CONFIG } from './constants';
 
 /**
- * Process and save uploaded image
+ * Process and save uploaded image to Vercel Blob Storage
  *
  * @param buffer - Image buffer from upload
  * @param filename - Desired filename (without extension)
- * @returns Path to saved image (relative to /public)
+ * @returns URL to saved image in Blob storage
  */
 export async function processAndSaveImage(
   buffer: Buffer,
   filename: string
 ): Promise<string> {
-  // Ensure images directory exists
-  const imagesDir = path.join(process.cwd(), 'public', 'images', 'products');
-  await fs.mkdir(imagesDir, { recursive: true });
-
   // Process image with Sharp
   const processedImage = await sharp(buffer)
     .resize(IMAGE_CONFIG.MAX_WIDTH, IMAGE_CONFIG.MAX_HEIGHT, {
@@ -35,14 +30,16 @@ export async function processAndSaveImage(
     .toBuffer();
 
   // Generate unique filename
-  const finalFilename = `${filename}.jpg`;
-  const filePath = path.join(imagesDir, finalFilename);
+  const finalFilename = `products/${filename}.jpg`;
 
-  // Save to disk
-  await fs.writeFile(filePath, processedImage);
+  // Upload to Vercel Blob Storage
+  const blob = await put(finalFilename, processedImage, {
+    access: 'public',
+    contentType: 'image/jpeg',
+  });
 
-  // Return path relative to /public
-  return `/images/products/${finalFilename}`;
+  // Return the blob URL
+  return blob.url;
 }
 
 /**
@@ -50,15 +47,12 @@ export async function processAndSaveImage(
  *
  * @param buffer - Original image buffer
  * @param filename - Desired filename (without extension)
- * @returns Path to thumbnail (relative to /public)
+ * @returns URL to thumbnail in Blob storage
  */
 export async function createThumbnail(
   buffer: Buffer,
   filename: string
 ): Promise<string> {
-  const imagesDir = path.join(process.cwd(), 'public', 'images', 'products');
-  await fs.mkdir(imagesDir, { recursive: true });
-
   const thumbnail = await sharp(buffer)
     .resize(IMAGE_CONFIG.THUMBNAIL_WIDTH, IMAGE_CONFIG.THUMBNAIL_WIDTH, {
       fit: 'cover', // Crop to square
@@ -66,28 +60,31 @@ export async function createThumbnail(
     .jpeg({ quality: IMAGE_CONFIG.QUALITY })
     .toBuffer();
 
-  const finalFilename = `${filename}_thumb.jpg`;
-  const filePath = path.join(imagesDir, finalFilename);
+  const finalFilename = `products/${filename}_thumb.jpg`;
 
-  await fs.writeFile(filePath, thumbnail);
+  const blob = await put(finalFilename, thumbnail, {
+    access: 'public',
+    contentType: 'image/jpeg',
+  });
 
-  return `/images/products/${finalFilename}`;
+  return blob.url;
 }
 
 /**
- * Delete image file
+ * Delete image file from Blob storage
  *
- * @param imagePath - Path to image (relative to /public)
+ * @param imageUrl - Full URL to the blob image
  */
-export async function deleteImage(imagePath: string): Promise<void> {
-  if (!imagePath) return;
+export async function deleteImage(imageUrl: string): Promise<void> {
+  if (!imageUrl) return;
 
   try {
-    const fullPath = path.join(process.cwd(), 'public', imagePath);
-    await fs.unlink(fullPath);
+    // Vercel Blob URLs have the format: https://[hash].public.blob.vercel-storage.com/...
+    // We can delete using the full URL
+    await del(imageUrl);
   } catch (error) {
-    // Ignore errors (file might not exist)
-    console.warn('Failed to delete image:', imagePath, error);
+    // Ignore errors (file might not exist or already deleted)
+    console.warn('Failed to delete image:', imageUrl, error);
   }
 }
 
