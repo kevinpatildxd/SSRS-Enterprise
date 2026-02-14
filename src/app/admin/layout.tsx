@@ -29,17 +29,29 @@ export default function AdminLayout({
     setIsLoading(false);
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
-    // Simple password check (in production, use proper auth)
-    // TODO: Change this password in production!
-    if (password === 'admin123') {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('admin_auth', 'true');
-      setError('');
-    } else {
-      setError('Invalid password. Please try again.');
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('admin_auth', 'true');
+        setError('');
+      } else {
+        setError('Invalid password. Please try again.');
+        setPassword('');
+      }
+    } catch (error) {
+      setError('Authentication failed. Please try again.');
       setPassword('');
     }
   };
@@ -101,12 +113,9 @@ export default function AdminLayout({
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-xs sm:text-sm text-yellow-800">
-              <strong>Default password:</strong> admin123
-            </p>
-            <p className="text-xs text-yellow-700 mt-1">
-              Change this in production!
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-xs text-blue-800">
+              Enter the password from your .env.local file
             </p>
           </div>
         </div>
