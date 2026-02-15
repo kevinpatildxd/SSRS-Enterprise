@@ -3,6 +3,7 @@
  *
  * Admin dashboard for managing products:
  * - Add new products
+ * - Edit existing products
  * - View all products
  * - Delete products
  *
@@ -21,6 +22,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -53,6 +56,22 @@ export default function AdminPage() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fetchProducts();
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingProduct(null);
+    setIsEditModalOpen(false);
+  };
+
+  const handleEditSuccess = () => {
+    setIsEditModalOpen(false);
+    setEditingProduct(null);
     fetchProducts();
   };
 
@@ -159,8 +178,24 @@ export default function AdminPage() {
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
           All Products ({products.length})
         </h2>
-        <ProductList products={products} onDelete={handleSuccess} />
+        <ProductList products={products} onDelete={handleSuccess} onEdit={handleEdit} />
       </div>
+
+      {/* Edit Product Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6">
+              <ProductForm
+                initialData={editingProduct}
+                isEditing={true}
+                onSuccess={handleEditSuccess}
+                onCancel={handleCancelEdit}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

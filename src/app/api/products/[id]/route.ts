@@ -14,10 +14,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { deleteProduct, getProductById } from '@/lib/db';
+import { deleteProduct, getProductById, updateProduct } from '@/lib/db';
 import { deleteImage } from '@/lib/imageProcessor';
 import type { ApiResponse, ApiError } from '@/types/api';
-import type { Product } from '@/types/product';
+import type { Product, ProductUpdate } from '@/types/product';
 
 /**
  * Validate product ID format
@@ -183,17 +183,141 @@ export async function DELETE(
 
 /**
  * PATCH /api/products/[id]
- * Updates a product (placeholder for future implementation)
+ * Updates a product partially
  */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return NextResponse.json<ApiError>(
-    {
-      success: false,
-      error: 'Update endpoint not implemented yet',
-    },
-    { status: 501 }
-  );
+  try {
+    const { id } = await params;
+
+    // Validate ID
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json<ApiError>(
+        {
+          success: false,
+          error: 'Product ID is required',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidProductId(id)) {
+      return NextResponse.json<ApiError>(
+        {
+          success: false,
+          error: 'Invalid product ID format',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Parse request body
+    let body: ProductUpdate;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json<ApiError>(
+        {
+          success: false,
+          error: 'Invalid request body',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate at least one field is provided
+    if (Object.keys(body).length === 0) {
+      return NextResponse.json<ApiError>(
+        {
+          success: false,
+          error: 'No fields provided for update',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate fields if provided
+    if (body.name !== undefined) {
+      if (typeof body.name !== 'string' || body.name.trim().length < 2) {
+        return NextResponse.json<ApiError>(
+          {
+            success: false,
+            error: 'Product name must be at least 2 characters',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (body.price !== undefined) {
+      if (typeof body.price !== 'number' || body.price < 0 || body.price > 1000000) {
+        return NextResponse.json<ApiError>(
+          {
+            success: false,
+            error: 'Price must be between 0 and 1,000,000',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (body.min_order_qty !== undefined) {
+      if (typeof body.min_order_qty !== 'string' || body.min_order_qty.trim().length === 0) {
+        return NextResponse.json<ApiError>(
+          {
+            success: false,
+            error: 'Minimum order quantity is required',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check if product exists
+    const existing = await getProductById(id);
+    if (!existing) {
+      return NextResponse.json<ApiError>(
+        {
+          success: false,
+          error: 'Product not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Update product in database
+    const updated = await updateProduct(id, body);
+
+    if (!updated) {
+      return NextResponse.json<ApiError>(
+        {
+          success: false,
+          error: 'Failed to update product',
+        },
+        { status: 500 }
+      );
+    }
+
+    // Revalidate home page cache so updated product appears immediately
+    revalidatePath('/');
+
+    return NextResponse.json<ApiResponse<Product>>({
+      success: true,
+      data: updated,
+      message: 'Product updated successfully',
+    });
+  } catch (error) {
+    console.error('Error updating product:', error);
+
+    return NextResponse.json<ApiError>(
+      {
+        success: false,
+        error: 'Failed to update product',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
 }

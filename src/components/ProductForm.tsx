@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ImageUpload from './ImageUpload';
+import type { Product } from '@/types/product';
 
 interface ProductFormProps {
   onSuccess?: () => void;
+  onCancel?: () => void;
+  initialData?: Product | null;
+  isEditing?: boolean;
 }
 
 interface FormData {
@@ -20,7 +24,12 @@ interface FormErrors {
   min_order_qty?: string;
 }
 
-export default function ProductForm({ onSuccess }: ProductFormProps) {
+export default function ProductForm({ 
+  onSuccess, 
+  onCancel,
+  initialData,
+  isEditing = false 
+}: ProductFormProps) {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     price: '',
@@ -33,6 +42,28 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [uploadKey, setUploadKey] = useState(0);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (isEditing && initialData) {
+      setFormData({
+        name: initialData.name,
+        price: initialData.price.toString(),
+        min_order_qty: initialData.min_order_qty,
+        image_path: initialData.image_path || '',
+      });
+      setUploadKey(prev => prev + 1); // Reset image upload with existing image
+    } else {
+      // Reset form when not editing
+      setFormData({
+        name: '',
+        price: '',
+        min_order_qty: '',
+        image_path: '',
+      });
+      setUploadKey(prev => prev + 1);
+    }
+  }, [isEditing, initialData]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -82,13 +113,33 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
+      let response;
       let data;
+
+      if (isEditing && initialData) {
+        // Update existing product
+        const updateData: { name?: string; price?: number; min_order_qty?: string; image_path?: string | null } = {};
+        
+        // Only include changed fields
+        if (formData.name !== initialData.name) updateData.name = formData.name;
+        if (parseFloat(formData.price) !== initialData.price) updateData.price = parseFloat(formData.price);
+        if (formData.min_order_qty !== initialData.min_order_qty) updateData.min_order_qty = formData.min_order_qty;
+        if (formData.image_path !== (initialData.image_path || '')) updateData.image_path = formData.image_path || null;
+
+        response = await fetch(`/api/products/${initialData.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData),
+        });
+      } else {
+        // Create new product
+        response = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+      }
+
       try {
         data = await response.json();
       } catch {
@@ -96,20 +147,20 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
       }
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || `Failed to create product (${response.status})`);
+        throw new Error(data.error || `Failed to ${isEditing ? 'update' : 'create'} product (${response.status})`);
       }
 
-      // Reset form
-      setFormData({
-        name: '',
-        price: '',
-        min_order_qty: '',
-        image_path: '',
-      });
-      setErrors({});
-
-      // Reset image upload component
-      setUploadKey(prev => prev + 1);
+      // Reset form only when creating (not editing)
+      if (!isEditing) {
+        setFormData({
+          name: '',
+          price: '',
+          min_order_qty: '',
+          image_path: '',
+        });
+        setErrors({});
+        setUploadKey(prev => prev + 1);
+      }
 
       // Show success message
       setSuccess(true);
@@ -117,11 +168,11 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
       // Call success callback
       onSuccess?.();
 
-      // Hide success message after 5 seconds
-      setTimeout(() => setSuccess(false), 5000);
+      // Hide success message after 3 seconds
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error('Form submission error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create product. Please try again.');
+      setError(err instanceof Error ? err.message : `Failed to ${isEditing ? 'update' : 'create'} product. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -137,7 +188,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 bg-white p-4 sm:p-6 rounded-lg shadow-md">
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Add New Product</h2>
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-800">{isEditing ? 'Edit Product' : 'Add New Product'}</h2>
 
       {/* General Error Message */}
       {error && (
@@ -158,7 +209,7 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-sm font-medium">Product added successfully!</span>
+            <span className="text-sm font-medium">{isEditing ? 'Product updated successfully!' : 'Product added successfully!'}</span>
           </div>
         </div>
       )}
@@ -245,24 +296,37 @@ export default function ProductForm({ onSuccess }: ProductFormProps) {
         onUploadError={handleImageError}
       />
 
-      {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-primary text-white py-3 sm:py-3.5 px-6 rounded-md font-medium text-base sm:text-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors active:scale-95 touch-manipulation"
-      >
-        {loading ? (
-          <span className="flex items-center justify-center gap-2">
-            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Adding Product...
-          </span>
-        ) : (
-          'Add Product'
+      {/* Submit and Cancel Buttons */}
+      <div className="space-y-3">
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-primary text-white py-3 sm:py-3.5 px-6 rounded-md font-medium text-base sm:text-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors active:scale-95 touch-manipulation"
+        >
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {isEditing ? 'Updating Product...' : 'Adding Product...'}
+            </span>
+          ) : (
+            isEditing ? 'Update Product' : 'Add Product'
+          )}
+        </button>
+
+        {isEditing && onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="w-full bg-gray-100 text-gray-700 py-3 sm:py-3.5 px-6 rounded-md font-medium text-base sm:text-lg hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400 transition-colors active:scale-95 touch-manipulation"
+          >
+            Cancel
+          </button>
         )}
-      </button>
+      </div>
     </form>
   );
 }
